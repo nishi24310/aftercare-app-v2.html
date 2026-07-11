@@ -565,7 +565,7 @@ function renderTimeline() {
         '<div class="tl-body">業者: ' + h.vendor + '　対応予定日: ' + h.date + (h.assignee ? '　担当: ' + h.assignee : '') + '</div></div>';
     } else {
       return '<div class="tl-item"><div class="tl-label">✅ 完了報告（' + h.at + '）</div>' +
-        '<div class="tl-body">' + h.note + (h.assignee ? '　担当: ' + h.assignee : '') + '</div></div>';
+        '<div class="tl-body">完了日: ' + (h.date || '') + '<br>' + h.note + (h.assignee ? '　担当: ' + h.assignee : '') + '</div></div>';
     }
   }).join('');
 }
