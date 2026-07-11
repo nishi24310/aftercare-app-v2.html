@@ -50,6 +50,7 @@ textarea{min-height:70px;resize:vertical;}
 .csv-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;background:linear-gradient(135deg,#345c40,#4a7c59);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
 .csv-status{font-size:12px;color:var(--green-dark);font-weight:700;margin-top:8px;}
 .csv-hint{font-size:11px;color:var(--muted);background:#f0f4f8;border-radius:8px;padding:9px 12px;margin-top:10px;line-height:1.6;}
+.csv-loaded-badge{background:#e8f4ec;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--green-dark);font-weight:700;margin-bottom:10px;}
 
 .search-wrap{position:relative;}
 .cust-list{max-height:240px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;background:#fff;margin-top:8px;}
@@ -62,7 +63,8 @@ textarea{min-height:70px;resize:vertical;}
 
 .selected-cust{background:#f0f7f2;border:1.5px solid var(--green);border-radius:8px;padding:12px 14px;margin-top:10px;}
 .selected-cust-name{font-weight:800;font-size:15px;color:var(--green-dark);}
-.selected-cust-meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6;}
+.selected-cust-meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.8;}
+.selected-cust-meta b{color:#555;}
 
 .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
 .chip{padding:9px 16px;border:2px solid var(--border);border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);background:#fff;font-family:inherit;}
@@ -94,25 +96,39 @@ textarea{min-height:70px;resize:vertical;}
 
 <div class="main">
 
-  <!-- CSV読み込み -->
+  <!-- JSON復元(現地で手配後、別PC/別セッションで完了報告する用) -->
   <div class="card">
-    <div class="card-hd">📂 顧客名簿の読み込み</div>
+    <div class="card-hd">💾 案件データの復元</div>
     <div class="card-bd">
-      <button class="csv-btn" onclick="document.getElementById('csv-file').click()">
-        <span>📂</span> CSVファイルを読み込む(点検アプリと同じファイル)
+      <button class="csv-btn" onclick="document.getElementById('json-file').click()">
+        <span>📂</span> 保存済みの案件JSONを読み込む
       </button>
-      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSV(this)">
-      <div class="csv-status" id="csv-status">まだ読み込まれていません</div>
-      <div class="csv-hint">点検アプリで使っているCSVをそのまま選んでください。ブラウザを閉じると再読み込みが必要です。</div>
+      <input type="file" id="json-file" accept=".json" style="display:none" onchange="importCaseJSON(this)">
+      <div class="csv-hint">「業者手配」まで済ませた案件をJSON出力しておけば、あとで読み込んで「完了報告」を続けられます。</div>
     </div>
   </div>
 
-  <!-- 顧客検索 -->
+  <!-- 顧客名簿(管理者用更新 + 検索) -->
   <div class="card">
     <div class="card-hd">🔍 お客様を検索</div>
     <div class="card-bd">
+      <div class="csv-loaded-badge" id="csv-loaded-badge">✅ <span id="csv-count">0</span>件の顧客データ収録済み</div>
+
+      <details style="margin-bottom:12px;">
+        <summary style="font-size:11px;color:var(--muted);cursor:pointer;padding:6px 0;">📂 管理者：顧客名簿を更新する</summary>
+        <div style="padding:8px 0;">
+          <button class="csv-btn" style="background:var(--muted);" onclick="document.getElementById('csv-file').click()">
+            <span>📂</span> CSVファイルで名簿を上書き
+          </button>
+          <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSV(this)">
+          <div class="csv-status" id="csv-status"></div>
+          <button class="btn btn-outline" id="download-html-btn" style="display:none;" onclick="downloadUpdatedHtml()">💾 更新済みHTMLをダウンロード</button>
+          <div class="csv-hint">CSVを読み込んだあと「更新済みHTMLをダウンロード」を押し、できたファイルでGitHub上のindex.htmlを上書きしてください。他の社員は何もしなくても最新の名簿が反映されます。</div>
+        </div>
+      </details>
+
       <div class="search-wrap">
-        <input type="text" id="cust-search" placeholder="名前・No・住所で検索..." oninput="searchCustomers(this.value)">
+        <input type="text" id="cust-search" placeholder="名前・契約NO.・住所で検索..." oninput="searchCustomers(this.value)">
       </div>
       <div class="cust-list" id="cust-list" style="display:none;"></div>
 
@@ -145,6 +161,7 @@ textarea{min-height:70px;resize:vertical;}
 
       <button class="btn btn-terra" onclick="openArrangeModal()">🔧 業者手配</button>
       <button class="btn btn-green" onclick="openCompleteModal()">✅ 完了報告</button>
+      <button class="btn btn-outline" onclick="exportCaseJSON()">💾 案件データをJSON出力</button>
       <button class="btn btn-outline" onclick="outputPdf()">📄 対応記録PDFを出力</button>
     </div>
   </div>
@@ -186,9 +203,14 @@ textarea{min-height:70px;resize:vertical;}
 const NOTIFY_WEBAPP_URL = 'ここにGASウェブアプリのURLを貼る'; // 例: https://script.google.com/macros/s/xxxxx/exec
 
 // ============================================================
+// 顧客データベース(管理者がCSVで更新し、HTMLごと差し替えます)
+// ============================================================
+var custDB = [];
+/*__CUSTDB_MARKER__*/
+
+// ============================================================
 // 状態
 // ============================================================
-let custDB = [];
 let selectedCustomer = null;
 let currentCase = {
   caseId: null,
@@ -199,7 +221,19 @@ let currentCase = {
 };
 
 // ============================================================
-// CSV読み込み(点検アプリと同じロジック)
+// 初期表示
+// ============================================================
+document.addEventListener('DOMContentLoaded', function () {
+  updateCsvBadge();
+});
+
+function updateCsvBadge() {
+  document.getElementById('csv-count').textContent = custDB.length;
+  document.getElementById('csv-loaded-badge').style.display = custDB.length ? 'block' : 'none';
+}
+
+// ============================================================
+// CSV読み込み(管理者用・名簿更新)
 // ============================================================
 function loadCSV(input) {
   const file = input.files[0];
@@ -228,7 +262,9 @@ function loadCSV(input) {
 }
 
 function onCSVLoaded() {
-  document.getElementById('csv-status').textContent = '✅ ' + custDB.length + '件の顧客データを読み込みました';
+  document.getElementById('csv-status').textContent = '✅ ' + custDB.length + '件読み込みました(下のボタンでHTMLに保存してください)';
+  document.getElementById('download-html-btn').style.display = 'block';
+  updateCsvBadge();
   showToast(custDB.length + '件読み込みました');
 }
 
@@ -247,6 +283,7 @@ function tryParseCSV(text) {
     const lines = clean.split('\n');
 
     let headerRow = -1;
+    // C列=顧客NO.(契約番号), AU列=引渡
     let colNo = 2, colName = 3, colTel = 4, colAddr = 5, colSales = 10, colDelivery = 46;
 
     for (let h = 0; h < Math.min(lines.length, 10); h++) {
@@ -303,6 +340,35 @@ function splitLine(line) {
 }
 
 // ============================================================
+// 更新済みHTMLのダウンロード(GitHub再アップロード用)
+// ============================================================
+function downloadUpdatedHtml() {
+  fetch(window.location.href, { cache: 'no-store' })
+    .then(function (res) { return res.text(); })
+    .then(function (html) {
+      const marker = '/*__CUSTDB_MARKER__*/';
+      const newAssign = 'custDB = ' + JSON.stringify(custDB) + ';\n' + marker;
+      let newHtml;
+      if (html.indexOf(marker) >= 0) {
+        newHtml = html.replace(marker, newAssign);
+      } else {
+        newHtml = html.replace(/var custDB = \[[\s\S]*?\];/, 'var custDB = ' + JSON.stringify(custDB) + ';');
+      }
+      const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'index.html';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      showToast('✅ index.html をダウンロードしました。GitHubで上書きしてください。');
+    })
+    .catch(function (err) {
+      alert('ダウンロードエラー: ' + err.message);
+    });
+}
+
+// ============================================================
 // 顧客検索
 // ============================================================
 function searchCustomers(q) {
@@ -321,8 +387,8 @@ function searchCustomers(q) {
   if (!hits.length) { list.innerHTML = '<div class="cust-empty">見つかりませんでした</div>'; return; }
   list.innerHTML = hits.map(function (h, i) {
     return '<div class="cust-item" onclick="selectCustomer(' + i + ')" data-idx="' + i + '">' +
-      '<div class="cust-name">' + h.name + (h.no ? ' <span style="font-weight:400;font-size:11px;color:var(--muted);">No.' + h.no + '</span>' : '') + '</div>' +
-      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + (h.delivery ? '　引渡:' + h.delivery : '') + '</div>' +
+      '<div class="cust-name">' + h.name + (h.no ? ' <span style="font-weight:400;font-size:11px;color:var(--muted);">契約NO.' + h.no + '</span>' : '') + '</div>' +
+      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + (h.delivery ? '　引渡日:' + h.delivery : '') + '</div>' +
       '</div>';
   }).join('');
   window._searchHits = hits;
@@ -330,9 +396,7 @@ function searchCustomers(q) {
 
 function selectCustomer(i) {
   selectedCustomer = window._searchHits[i];
-  document.getElementById('sel-name').textContent = selectedCustomer.name + ' 様' + (selectedCustomer.no ? '（No.' + selectedCustomer.no + '）' : '');
-  document.getElementById('sel-meta').textContent = selectedCustomer.addr + (selectedCustomer.tel ? '　📞' + selectedCustomer.tel : '') + (selectedCustomer.delivery ? '　引渡:' + selectedCustomer.delivery : '');
-  document.getElementById('selected-cust').style.display = 'block';
+  renderSelectedCustomer();
   document.getElementById('cust-list').style.display = 'none';
   document.getElementById('cust-search').value = '';
   document.getElementById('case-card').style.display = 'block';
@@ -349,6 +413,16 @@ function selectCustomer(i) {
   document.getElementById('f-action').value = '';
   document.getElementById('timeline').style.display = 'none';
   document.getElementById('timeline').innerHTML = '';
+}
+
+function renderSelectedCustomer() {
+  document.getElementById('sel-name').textContent = selectedCustomer.name + ' 様';
+  document.getElementById('sel-meta').innerHTML =
+    '<b>契約NO.</b>' + (selectedCustomer.no || '－') + '<br>' +
+    selectedCustomer.addr +
+    (selectedCustomer.tel ? '　📞' + selectedCustomer.tel : '') + '<br>' +
+    '<b>引渡日</b>' + (selectedCustomer.delivery || '－');
+  document.getElementById('selected-cust').style.display = 'block';
 }
 
 function clearSelectedCustomer() {
@@ -371,6 +445,16 @@ function setStatus(el, val) {
   el.classList.add('on');
   if (val === '要修繕') el.classList.add('danger');
   currentCase.status = val;
+}
+
+function restoreStatusChip(val) {
+  document.querySelectorAll('#status-chips .chip').forEach(function (c) {
+    c.classList.remove('on', 'danger');
+    if (c.textContent.indexOf(val) >= 0) {
+      c.classList.add('on');
+      if (val === '要修繕') c.classList.add('danger');
+    }
+  });
 }
 
 // ============================================================
@@ -421,7 +505,7 @@ function submitArrange() {
     assignee: assignee
   });
 
-  showToast('✅ 業者手配を記録・通知しました');
+  showToast('✅ 業者手配を記録・通知しました。続けて「JSON出力」で保存できます');
 }
 
 // ============================================================
@@ -475,6 +559,61 @@ function renderTimeline() {
         '<div class="tl-body">' + h.note + (h.assignee ? '　担当: ' + h.assignee : '') + '</div></div>';
     }
   }).join('');
+}
+
+// ============================================================
+// 案件データのJSON出力・復元(点検アプリと同じ考え方)
+// ============================================================
+function exportCaseJSON() {
+  if (!selectedCustomer) { alert('お客様を選択してください'); return; }
+  currentCase.model = document.getElementById('f-model').value.trim();
+  currentCase.action = document.getElementById('f-action').value.trim();
+
+  const data = {
+    version: 1,
+    savedAt: new Date().toLocaleString('ja-JP'),
+    selectedCustomer: selectedCustomer,
+    currentCase: currentCase
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dt = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '');
+  a.href = url;
+  a.download = 'case_' + selectedCustomer.name + '_' + dt + '.json';
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  showToast('✅ 案件データをJSON出力しました');
+}
+
+function importCaseJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = function (e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !data.selectedCustomer || !data.currentCase) {
+        alert('JSONファイルの形式が正しくありません。');
+        return;
+      }
+      selectedCustomer = data.selectedCustomer;
+      currentCase = data.currentCase;
+
+      renderSelectedCustomer();
+      document.getElementById('case-card').style.display = 'block';
+      document.getElementById('f-model').value = currentCase.model || '';
+      document.getElementById('f-action').value = currentCase.action || '';
+      if (currentCase.status) restoreStatusChip(currentCase.status);
+      renderTimeline();
+
+      showToast('✅ ' + selectedCustomer.name + ' 様の案件データを復元しました');
+    } catch (ex) {
+      alert('JSONの読み込みに失敗しました: ' + ex.message);
+    }
+  };
+  r.readAsText(file, 'UTF-8');
+  input.value = '';
 }
 
 // ============================================================
@@ -539,8 +678,9 @@ function buildPdfHtml() {
     '<table>' +
     '<tr><td class="lbl">案件ID</td><td>' + (c.caseId || '') + '</td><td class="lbl">出力日</td><td>' + today + '</td></tr>' +
     '<tr><td class="lbl">お客様</td><td colspan="3"><b>' + selectedCustomer.name + '</b> 様</td></tr>' +
+    '<tr><td class="lbl">契約NO.</td><td>' + (selectedCustomer.no || '－') + '</td><td class="lbl">引渡日</td><td>' + (selectedCustomer.delivery || '－') + '</td></tr>' +
     '<tr><td class="lbl">住所</td><td colspan="3">' + selectedCustomer.addr + '</td></tr>' +
-    '<tr><td class="lbl">電話番号</td><td>' + (selectedCustomer.tel || '－') + '</td><td class="lbl">引渡</td><td>' + (selectedCustomer.delivery || '－') + '</td></tr>' +
+    '<tr><td class="lbl">電話番号</td><td colspan="3">' + (selectedCustomer.tel || '－') + '</td></tr>' +
     '</table>' +
     '<div class="sec">案件情報</div>' +
     '<table>' +
