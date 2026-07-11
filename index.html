@@ -395,14 +395,28 @@ function searchCustomers(q) {
   }
   list.style.display = 'block';
   if (!hits.length) { list.innerHTML = '<div class="cust-empty">見つかりませんでした</div>'; return; }
-  list.innerHTML = hits.map(function (h, i) {
-    return '<div class="cust-item" onclick="selectCustomer(' + i + ')" data-idx="' + i + '">' +
+  list.innerHTML = '';
+  hits.forEach(function (h) {
+    const div = document.createElement('div');
+    div.className = 'cust-item';
+    div.innerHTML =
       '<div class="cust-name">' + h.name + (h.no ? ' <span style="font-weight:400;font-size:11px;color:var(--muted);">契約NO.' + h.no + '</span>' : '') + '</div>' +
-      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + '</div>' +
-      '<div class="cust-meta">' + (h.sales ? '営業:' + h.sales : '') + (h.construction ? '　工事:' + h.construction : '') + (h.delivery ? '　引渡:' + h.delivery : '') + '</div>' +
-      '</div>';
-  }).join('');
-  window._searchHits = hits;
+      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + (h.delivery ? '　引渡日:' + h.delivery : '') + '</div>';
+    div.addEventListener('click', function () {
+      selectedCustomer = h;
+      renderSelectedCustomer();
+      document.getElementById('cust-list').style.display = 'none';
+      document.getElementById('cust-search').value = '';
+      document.getElementById('case-card').style.display = 'block';
+      currentCase = { caseId: makeCaseId(), status: '', model: '', action: '', history: [] };
+      document.querySelectorAll('#status-chips .chip').forEach(function(c){ c.classList.remove('on', 'danger'); });
+      document.getElementById('f-model').value = '';
+      document.getElementById('f-action').value = '';
+      document.getElementById('timeline').style.display = 'none';
+      document.getElementById('timeline').innerHTML = '';
+    });
+    list.appendChild(div);
+  });
 }
 
 function selectCustomer(i) {
