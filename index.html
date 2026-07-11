@@ -519,10 +519,12 @@ function submitArrange() {
 // ============================================================
 function submitComplete() {
   const note = document.getElementById('m-note').value.trim();
+  const completeDate = document.getElementById('m-complete-date').value;
   const assignee = document.getElementById('m-assignee-complete').value.trim();
   if (!note) { alert('対応内容メモを入力してください'); return; }
+  if (!completeDate) { alert('完了日を選択してください'); return; }
 
-  const entry = { type: 'complete', note: note, assignee: assignee, at: new Date().toLocaleString('ja-JP') };
+  const entry = { type: 'complete', note: note, date: completeDate, assignee: assignee, at: new Date().toLocaleString('ja-JP') };
   currentCase.history.push(entry);
   renderTimeline();
   closeModal('complete-modal');
@@ -543,6 +545,7 @@ function submitComplete() {
     actionDetail: currentCase.action,
     vendor: lastArrange ? lastArrange.vendor : '',
     completionNote: note,
+    completionDate: completeDate,
     assignee: assignee
   });
 
