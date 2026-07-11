@@ -291,7 +291,6 @@ function tryParseCSV(text) {
     const lines = clean.split('\n');
 
     let headerRow = -1;
-    // C列=顧客NO.(契約番号), AU列=引渡
     let colNo = 2, colName = 3, colTel = 4, colAddr = 5, colSales = 10, colConstruction = 14, colDelivery = 46;
 
     for (let h = 0; h < Math.min(lines.length, 10); h++) {
@@ -302,7 +301,7 @@ function tryParseCSV(text) {
         if (cell === '顧客名') colName = hc;
         if (cell === '電話番号') colTel = hc;
         if (cell === '建設地') colAddr = hc;
-       if (cell === '営業' || cell === '営業担当' || cell === '担当者') colSales = hc;
+        if (cell === '営業' || cell === '営業担当' || cell === '担当者') colSales = hc;
         if (cell === '工事' || cell === '工事担当') colConstruction = hc;
         if (cell === '引渡' || cell === '引渡日' || cell === '引渡年月日') colDelivery = hc;
       }
@@ -322,9 +321,16 @@ function tryParseCSV(text) {
       if (!no && !name) continue;
       const tel = cols.length > colTel ? cols[colTel].trim() : '';
       const addr = cols.length > colAddr ? cols[colAddr].trim() : '';
-const sales = colSales >= 0 && cols.length > colSales ? cols[colSales].trim() : '';
+      const sales = colSales >= 0 && cols.length > colSales ? cols[colSales].trim() : '';
       const construction = colConstruction >= 0 && cols.length > colConstruction ? cols[colConstruction].trim() : '';
       const delivery = colDelivery >= 0 && cols.length > colDelivery ? cols[colDelivery].trim() : '';
+      result.push({ no: no, name: name, addr: addr, tel: tel, sales: sales, construction: construction, delivery: delivery });
+    }
+    return result;
+  } catch (ex) {
+    return [];
+  }
+}
       result.push({ no: no, name: name, addr: addr, tel: tel, sales: sales, construction: construction, delivery: delivery });
     }
     return result;
@@ -401,7 +407,8 @@ function searchCustomers(q) {
     div.className = 'cust-item';
     div.innerHTML =
       '<div class="cust-name">' + h.name + (h.no ? ' <span style="font-weight:400;font-size:11px;color:var(--muted);">契約NO.' + h.no + '</span>' : '') + '</div>' +
-      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + (h.delivery ? '　引渡日:' + h.delivery : '') + '</div>';
+      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + '</div>' +
+      '<div class="cust-meta">' + (h.sales ? '営業:' + h.sales : '') + (h.construction ? '　工事:' + h.construction : '') + (h.delivery ? '　引渡:' + h.delivery : '') + '</div>';
     div.addEventListener('click', function () {
       selectedCustomer = h;
       renderSelectedCustomer();
