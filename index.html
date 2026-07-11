@@ -472,6 +472,9 @@ function openArrangeModal() {
 function openCompleteModal() {
   if (!selectedCustomer) { alert('お客様を選択してください'); return; }
   document.getElementById('m-note').value = '';
+  const today = new Date();
+  const pad = function(n){ return String(n).padStart(2, '0'); };
+  document.getElementById('m-complete-date').value = today.getFullYear() + '-' + pad(today.getMonth()+1) + '-' + pad(today.getDate());
   document.getElementById('complete-modal').classList.add('on');
 }
 function closeModal(id) {
