@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>IE KEIKAKU アフター対応</title>
+<style>
+:root {
+  --green: #4a7c59;
+  --green-dark: #345c40;
+  --terracotta: #c17a5c;
+  --bg: #f7f5f2;
+  --card: #fff;
+  --border: #e5e0da;
+  --text: #2c2c2c;
+  --muted: #8a8a8a;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;background:var(--bg);color:var(--text);font-size:15px;min-height:100vh;padding-bottom:40px;}
+
+.hdr{background:var(--green-dark);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+.hdr-logo{font-size:10px;letter-spacing:2px;opacity:.6;margin-bottom:2px;}
+.hdr-title{font-size:17px;font-weight:800;}
+
+.main{padding:16px;max-width:640px;margin:0 auto;}
+
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
+.card-hd{background:var(--green-dark);color:#fff;padding:10px 14px;font-size:13px;font-weight:700;}
+.card-hd.terra{background:var(--terracotta);}
+.card-bd{padding:16px;}
+
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;margin-top:12px;}
+label:first-child{margin-top:0;}
+input[type=text],input[type=date],textarea,select{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:15px;font-family:inherit;color:var(--text);background:#fff;
+  -webkit-appearance:none;outline:none;transition:border-color .2s;}
+input:focus,textarea:focus,select:focus{border-color:var(--green);}
+textarea{min-height:70px;resize:vertical;}
+
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:12px;}
+.btn:active{opacity:.85;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-terra{background:var(--terracotta);color:#fff;}
+.btn-outline{background:#fff;color:var(--green-dark);border:2px solid var(--green);}
+.btn-gray{background:#eee;color:#555;}
+
+.csv-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;background:linear-gradient(135deg,#345c40,#4a7c59);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
+.csv-status{font-size:12px;color:var(--green-dark);font-weight:700;margin-top:8px;}
+.csv-hint{font-size:11px;color:var(--muted);background:#f0f4f8;border-radius:8px;padding:9px 12px;margin-top:10px;line-height:1.6;}
+
+.search-wrap{position:relative;}
+.cust-list{max-height:240px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;background:#fff;margin-top:8px;}
+.cust-item{padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;}
+.cust-item:last-child{border-bottom:none;}
+.cust-item:active{background:#f0f4f8;}
+.cust-name{font-weight:800;font-size:14px;color:var(--green-dark);}
+.cust-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.cust-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px;}
+
+.selected-cust{background:#f0f7f2;border:1.5px solid var(--green);border-radius:8px;padding:12px 14px;margin-top:10px;}
+.selected-cust-name{font-weight:800;font-size:15px;color:var(--green-dark);}
+.selected-cust-meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6;}
+
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{padding:9px 16px;border:2px solid var(--border);border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);background:#fff;font-family:inherit;}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff;}
+.chip.on.danger{background:var(--terracotta);border-color:var(--terracotta);}
+
+.timeline{border-left:3px solid var(--green);padding-left:14px;margin-top:14px;}
+.tl-item{margin-bottom:14px;}
+.tl-label{font-size:11px;font-weight:800;color:var(--green-dark);}
+.tl-body{font-size:13px;color:#444;margin-top:2px;line-height:1.6;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:#222;color:#fff;padding:11px 22px;border-radius:30px;font-size:13px;font-weight:700;z-index:1000;transition:transform .3s;white-space:nowrap;max-width:90%;text-align:center;}
+.toast.on{transform:translateX(-50%) translateY(0);}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:flex-end;justify-content:center;}
+.modal-bg.on{display:flex;}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:640px;max-height:85vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:800;color:var(--green-dark);margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="hdr">
+  <div class="hdr-logo">■ IE KEIKAKU</div>
+  <div class="hdr-title">アフター対応管理</div>
+</div>
+
+<div class="main">
+
+  <!-- CSV読み込み -->
+  <div class="card">
+    <div class="card-hd">📂 顧客名簿の読み込み</div>
+    <div class="card-bd">
+      <button class="csv-btn" onclick="document.getElementById('csv-file').click()">
+        <span>📂</span> CSVファイルを読み込む(点検アプリと同じファイル)
+      </button>
+      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSV(this)">
+      <div class="csv-status" id="csv-status">まだ読み込まれていません</div>
+      <div class="csv-hint">点検アプリで使っているCSVをそのまま選んでください。ブラウザを閉じると再読み込みが必要です。</div>
+    </div>
+  </div>
+
+  <!-- 顧客検索 -->
+  <div class="card">
+    <div class="card-hd">🔍 お客様を検索</div>
+    <div class="card-bd">
+      <div class="search-wrap">
+        <input type="text" id="cust-search" placeholder="名前・No・住所で検索..." oninput="searchCustomers(this.value)">
+      </div>
+      <div class="cust-list" id="cust-list" style="display:none;"></div>
+
+      <div class="selected-cust" id="selected-cust" style="display:none;">
+        <div class="selected-cust-name" id="sel-name"></div>
+        <div class="selected-cust-meta" id="sel-meta"></div>
+        <button class="btn btn-gray" style="margin-top:10px;" onclick="clearSelectedCustomer()">別のお客様を選ぶ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 案件情報 -->
+  <div class="card" id="case-card" style="display:none;">
+    <div class="card-hd terra">📋 案件情報</div>
+    <div class="card-bd">
+      <label>状態</label>
+      <div class="chip-row" id="status-chips">
+        <div class="chip" onclick="setStatus(this,'要修繕')">🔴 要修繕</div>
+        <div class="chip" onclick="setStatus(this,'要注意')">⚠️ 要注意</div>
+        <div class="chip" onclick="setStatus(this,'問題なし')">✅ 問題なし</div>
+      </div>
+
+      <label>品番</label>
+      <input type="text" id="f-model" placeholder="例：給湯器 XYZ-1234">
+
+      <label>対応内容</label>
+      <textarea id="f-action" placeholder="状況・お客様からの申告内容・現地での対応予定など"></textarea>
+
+      <div class="timeline" id="timeline" style="display:none;"></div>
+
+      <button class="btn btn-terra" onclick="openArrangeModal()">🔧 業者手配</button>
+      <button class="btn btn-green" onclick="openCompleteModal()">✅ 完了報告</button>
+      <button class="btn btn-outline" onclick="outputPdf()">📄 対応記録PDFを出力</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 業者手配モーダル -->
+<div class="modal-bg" id="arrange-modal">
+  <div class="modal">
+    <div class="modal-title">🔧 業者手配</div>
+    <label>手配業者名</label>
+    <input type="text" id="m-vendor" placeholder="例：〇〇設備">
+    <label>対応予定日</label>
+    <input type="date" id="m-date">
+    <label>担当者名</label>
+    <input type="text" id="m-assignee-arrange" placeholder="例：西里">
+    <button class="btn btn-terra" onclick="submitArrange()">この内容で手配確定・通知</button>
+    <button class="btn btn-gray" onclick="closeModal('arrange-modal')">キャンセル</button>
+  </div>
+</div>
+
+<!-- 完了報告モーダル -->
+<div class="modal-bg" id="complete-modal">
+  <div class="modal">
+    <div class="modal-title">✅ 完了報告</div>
+    <label>対応内容メモ</label>
+    <textarea id="m-note" placeholder="現地対応の結果・交換部品など"></textarea>
+    <label>担当者名</label>
+    <input type="text" id="m-assignee-complete" placeholder="例：西里">
+    <button class="btn btn-green" onclick="submitComplete()">この内容で完了報告・通知</button>
+    <button class="btn btn-gray" onclick="closeModal('complete-modal')">キャンセル</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+const NOTIFY_WEBAPP_URL = 'ここにGASウェブアプリのURLを貼る'; // 例: https://script.google.com/macros/s/xxxxx/exec
+
+// ============================================================
+// 状態
+// ============================================================
+let custDB = [];
+let selectedCustomer = null;
+let currentCase = {
+  caseId: null,
+  status: '',
+  model: '',
+  action: '',
+  history: [] // {type:'arrange'|'complete', ...}
+};
+
+// ============================================================
+// CSV読み込み(点検アプリと同じロジック)
+// ============================================================
+function loadCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('csv-status');
+  statusEl.textContent = '読み込み中...';
+
+  const r1 = new FileReader();
+  r1.onload = function (e) {
+    const rows = tryParseCSV(e.target.result);
+    if (rows.length > 0) {
+      custDB = rows;
+      onCSVLoaded();
+    } else {
+      const r2 = new FileReader();
+      r2.onload = function (e2) {
+        custDB = tryParseCSV(e2.target.result);
+        if (custDB.length > 0) onCSVLoaded();
+        else statusEl.textContent = '読み込めませんでした。CSVの形式を確認してください。';
+      };
+      r2.readAsText(file, 'UTF-8');
+    }
+  };
+  r1.readAsText(file, 'Shift_JIS');
+  input.value = '';
+}
+
+function onCSVLoaded() {
+  document.getElementById('csv-status').textContent = '✅ ' + custDB.length + '件の顧客データを読み込みました';
+  showToast(custDB.length + '件読み込みました');
+}
+
+function tryParseCSV(text) {
+  try {
+    let clean = '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text.charAt(i);
+      if (ch === '\r') {
+        clean += '\n';
+        if (i + 1 < text.length && text.charAt(i + 1) === '\n') i++;
+      } else {
+        clean += ch;
+      }
+    }
+    const lines = clean.split('\n');
+
+    let headerRow = -1;
+    let colNo = 2, colName = 3, colTel = 4, colAddr = 5, colSales = 10, colDelivery = 46;
+
+    for (let h = 0; h < Math.min(lines.length, 10); h++) {
+      const hcols = splitLine(lines[h]);
+      for (let hc = 0; hc < hcols.length; hc++) {
+        const cell = hcols[hc].trim();
+        if (cell === '顧客NO.' || cell === '顧客No.' || cell === '顧客NO') { colNo = hc; headerRow = h; }
+        if (cell === '顧客名') colName = hc;
+        if (cell === '電話番号') colTel = hc;
+        if (cell === '建設地') colAddr = hc;
+        if (cell === '営業' || cell === '営業担当' || cell === '担当者') colSales = hc;
+        if (cell === '引渡' || cell === '引渡日' || cell === '引渡年月日') colDelivery = hc;
+      }
+      if (headerRow >= 0) break;
+    }
+
+    const startRow = headerRow >= 0 ? headerRow + 3 : 3;
+    const result = [];
+
+    for (let ln = startRow; ln < lines.length; ln++) {
+      const line = lines[ln];
+      if (!line || !line.trim()) continue;
+      const cols = splitLine(line);
+      const no = cols.length > colNo ? cols[colNo].trim() : '';
+      let name = cols.length > colName ? cols[colName].trim() : '';
+      name = name.replace(/　/g, ' ');
+      if (!no && !name) continue;
+      const tel = cols.length > colTel ? cols[colTel].trim() : '';
+      const addr = cols.length > colAddr ? cols[colAddr].trim() : '';
+      const sales = colSales >= 0 && cols.length > colSales ? cols[colSales].trim() : '';
+      const delivery = colDelivery >= 0 && cols.length > colDelivery ? cols[colDelivery].trim() : '';
+      result.push({ no: no, name: name, addr: addr, tel: tel, sales: sales, delivery: delivery });
+    }
+    return result;
+  } catch (ex) {
+    return [];
+  }
+}
+
+function splitLine(line) {
+  const cols = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line.charAt(i);
+    if (ch === '"') {
+      if (inQ && i + 1 < line.length && line.charAt(i + 1) === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  cols.push(cur);
+  return cols;
+}
+
+// ============================================================
+// 顧客検索
+// ============================================================
+function searchCustomers(q) {
+  const list = document.getElementById('cust-list');
+  if (!q || !q.trim()) { list.style.display = 'none'; list.innerHTML = ''; return; }
+  const kw = q.toLowerCase();
+  const hits = [];
+  for (let i = 0; i < custDB.length; i++) {
+    const c = custDB[i];
+    if (c.name.toLowerCase().indexOf(kw) >= 0 || c.no.indexOf(kw) >= 0 || c.addr.toLowerCase().indexOf(kw) >= 0) {
+      hits.push(c);
+      if (hits.length >= 20) break;
+    }
+  }
+  list.style.display = 'block';
+  if (!hits.length) { list.innerHTML = '<div class="cust-empty">見つかりませんでした</div>'; return; }
+  list.innerHTML = hits.map(function (h, i) {
+    return '<div class="cust-item" onclick="selectCustomer(' + i + ')" data-idx="' + i + '">' +
+      '<div class="cust-name">' + h.name + (h.no ? ' <span style="font-weight:400;font-size:11px;color:var(--muted);">No.' + h.no + '</span>' : '') + '</div>' +
+      '<div class="cust-meta">' + h.addr + (h.tel ? '　📞' + h.tel : '') + (h.delivery ? '　引渡:' + h.delivery : '') + '</div>' +
+      '</div>';
+  }).join('');
+  window._searchHits = hits;
+}
+
+function selectCustomer(i) {
+  selectedCustomer = window._searchHits[i];
+  document.getElementById('sel-name').textContent = selectedCustomer.name + ' 様' + (selectedCustomer.no ? '（No.' + selectedCustomer.no + '）' : '');
+  document.getElementById('sel-meta').textContent = selectedCustomer.addr + (selectedCustomer.tel ? '　📞' + selectedCustomer.tel : '') + (selectedCustomer.delivery ? '　引渡:' + selectedCustomer.delivery : '');
+  document.getElementById('selected-cust').style.display = 'block';
+  document.getElementById('cust-list').style.display = 'none';
+  document.getElementById('cust-search').value = '';
+  document.getElementById('case-card').style.display = 'block';
+
+  currentCase = {
+    caseId: makeCaseId(),
+    status: '',
+    model: '',
+    action: '',
+    history: []
+  };
+  document.querySelectorAll('#status-chips .chip').forEach(function(c){ c.classList.remove('on', 'danger'); });
+  document.getElementById('f-model').value = '';
+  document.getElementById('f-action').value = '';
+  document.getElementById('timeline').style.display = 'none';
+  document.getElementById('timeline').innerHTML = '';
+}
+
+function clearSelectedCustomer() {
+  selectedCustomer = null;
+  document.getElementById('selected-cust').style.display = 'none';
+  document.getElementById('case-card').style.display = 'none';
+}
+
+function makeCaseId() {
+  const d = new Date();
+  const pad = function(n){ return String(n).padStart(2, '0'); };
+  return d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+}
+
+// ============================================================
+// 状態チップ
+// ============================================================
+function setStatus(el, val) {
+  document.querySelectorAll('#status-chips .chip').forEach(function(c){ c.classList.remove('on', 'danger'); });
+  el.classList.add('on');
+  if (val === '要修繕') el.classList.add('danger');
+  currentCase.status = val;
+}
+
+// ============================================================
+// モーダル制御
+// ============================================================
+function openArrangeModal() {
+  if (!selectedCustomer) { alert('お客様を選択してください'); return; }
+  document.getElementById('m-vendor').value = '';
+  document.getElementById('m-date').value = '';
+  document.getElementById('arrange-modal').classList.add('on');
+}
+function openCompleteModal() {
+  if (!selectedCustomer) { alert('お客様を選択してください'); return; }
+  document.getElementById('m-note').value = '';
+  document.getElementById('complete-modal').classList.add('on');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('on');
+}
+
+// ============================================================
+// 業者手配の確定
+// ============================================================
+function submitArrange() {
+  const vendor = document.getElementById('m-vendor').value.trim();
+  const date = document.getElementById('m-date').value;
+  const assignee = document.getElementById('m-assignee-arrange').value.trim();
+  if (!vendor || !date) { alert('業者名と対応予定日を入力してください'); return; }
+
+  currentCase.model = document.getElementById('f-model').value.trim();
+  currentCase.action = document.getElementById('f-action').value.trim();
+
+  const entry = { type: 'arrange', vendor: vendor, date: date, assignee: assignee, at: new Date().toLocaleString('ja-JP') };
+  currentCase.history.push(entry);
+  renderTimeline();
+  closeModal('arrange-modal');
+
+  sendNotification({
+    action: 'arrange',
+    caseId: currentCase.caseId,
+    customerName: selectedCustomer.name,
+    customerAddr: selectedCustomer.addr,
+    status: currentCase.status,
+    model: currentCase.model,
+    actionDetail: currentCase.action,
+    vendor: vendor,
+    scheduledDate: date,
+    assignee: assignee
+  });
+
+  showToast('✅ 業者手配を記録・通知しました');
+}
+
+// ============================================================
+// 完了報告の確定
+// ============================================================
+function submitComplete() {
+  const note = document.getElementById('m-note').value.trim();
+  const assignee = document.getElementById('m-assignee-complete').value.trim();
+  if (!note) { alert('対応内容メモを入力してください'); return; }
+
+  const entry = { type: 'complete', note: note, assignee: assignee, at: new Date().toLocaleString('ja-JP') };
+  currentCase.history.push(entry);
+  renderTimeline();
+  closeModal('complete-modal');
+
+  const reversedHistory = currentCase.history.slice().reverse();
+  let lastArrange = null;
+  for (let i = 0; i < reversedHistory.length; i++) {
+    if (reversedHistory[i].type === 'arrange') { lastArrange = reversedHistory[i]; break; }
+  }
+
+  sendNotification({
+    action: 'complete',
+    caseId: currentCase.caseId,
+    customerName: selectedCustomer.name,
+    customerAddr: selectedCustomer.addr,
+    status: currentCase.status,
+    model: currentCase.model,
+    actionDetail: currentCase.action,
+    vendor: lastArrange ? lastArrange.vendor : '',
+    completionNote: note,
+    assignee: assignee
+  });
+
+  showToast('✅ 完了報告を記録・通知しました');
+}
+
+// ============================================================
+// タイムライン表示
+// ============================================================
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  if (!currentCase.history.length) { tl.style.display = 'none'; return; }
+  tl.style.display = 'block';
+  tl.innerHTML = currentCase.history.map(function (h) {
+    if (h.type === 'arrange') {
+      return '<div class="tl-item"><div class="tl-label">🔧 業者手配（' + h.at + '）</div>' +
+        '<div class="tl-body">業者: ' + h.vendor + '　対応予定日: ' + h.date + (h.assignee ? '　担当: ' + h.assignee : '') + '</div></div>';
+    } else {
+      return '<div class="tl-item"><div class="tl-label">✅ 完了報告（' + h.at + '）</div>' +
+        '<div class="tl-body">' + h.note + (h.assignee ? '　担当: ' + h.assignee : '') + '</div></div>';
+    }
+  }).join('');
+}
+
+// ============================================================
+// メール通知(GASへ送信)
+// ============================================================
+function sendNotification(payload) {
+  if (!NOTIFY_WEBAPP_URL || NOTIFY_WEBAPP_URL.indexOf('http') !== 0) {
+    console.warn('NOTIFY_WEBAPP_URL が未設定のため、通知メールは送信されません。');
+    return;
+  }
+  fetch(NOTIFY_WEBAPP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  }).catch(function (err) {
+    console.error('通知送信エラー:', err);
+    showToast('⚠️ 通知メールの送信に失敗しました(記録は保存されています)');
+  });
+}
+
+// ============================================================
+// PDF出力(点検アプリと同じ方式:別タブでHTMLを開いて印刷)
+// ============================================================
+function outputPdf() {
+  if (!selectedCustomer) { alert('お客様を選択してください'); return; }
+  const html = buildPdfHtml();
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+}
+
+function buildPdfHtml() {
+  const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+  const c = currentCase;
+
+  const historyHtml = c.history.map(function (h) {
+    if (h.type === 'arrange') {
+      return '<tr><td style="padding:6px 8px;border:1px solid #ccc;">🔧 業者手配</td>' +
+        '<td style="padding:6px 8px;border:1px solid #ccc;">' + h.at + '</td>' +
+        '<td style="padding:6px 8px;border:1px solid #ccc;">業者: ' + h.vendor + ' / 予定日: ' + h.date + (h.assignee ? ' / 担当: ' + h.assignee : '') + '</td></tr>';
+    } else {
+      return '<tr><td style="padding:6px 8px;border:1px solid #ccc;">✅ 完了報告</td>' +
+        '<td style="padding:6px 8px;border:1px solid #ccc;">' + h.at + '</td>' +
+        '<td style="padding:6px 8px;border:1px solid #ccc;">' + h.note + (h.assignee ? ' / 担当: ' + h.assignee : '') + '</td></tr>';
+    }
+  }).join('');
+
+  return '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>' +
+    '@page{size:A4;margin:15mm 12mm;}' +
+    'body{font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:12px;color:#222;margin:0;padding:0;}' +
+    '.wrap{max-width:720px;margin:0 auto;}' +
+    'h1{font-size:16px;text-align:center;border-bottom:2.5px solid #345c40;padding-bottom:8px;margin-bottom:14px;}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:14px;}' +
+    'td{padding:6px 8px;border:1px solid #ccc;font-size:11px;vertical-align:top;}' +
+    '.lbl{background:#f0f3f7;font-weight:bold;width:90px;}' +
+    '.sec{background:#345c40;color:#fff;padding:5px 10px;margin:14px 0 8px;font-weight:bold;font-size:11px;}' +
+    '.logo{font-weight:bold;font-size:12px;color:#345c40;margin-bottom:4px;}' +
+    '</style></head><body><div class="wrap">' +
+    '<div class="logo">■ IE KEIKAKU</div>' +
+    '<h1>アフター対応記録</h1>' +
+    '<table>' +
+    '<tr><td class="lbl">案件ID</td><td>' + (c.caseId || '') + '</td><td class="lbl">出力日</td><td>' + today + '</td></tr>' +
+    '<tr><td class="lbl">お客様</td><td colspan="3"><b>' + selectedCustomer.name + '</b> 様</td></tr>' +
+    '<tr><td class="lbl">住所</td><td colspan="3">' + selectedCustomer.addr + '</td></tr>' +
+    '<tr><td class="lbl">電話番号</td><td>' + (selectedCustomer.tel || '－') + '</td><td class="lbl">引渡</td><td>' + (selectedCustomer.delivery || '－') + '</td></tr>' +
+    '</table>' +
+    '<div class="sec">案件情報</div>' +
+    '<table>' +
+    '<tr><td class="lbl">状態</td><td>' + (c.status || '－') + '</td></tr>' +
+    '<tr><td class="lbl">品番</td><td>' + (c.model || '－') + '</td></tr>' +
+    '<tr><td class="lbl">対応内容</td><td>' + (c.action || '－') + '</td></tr>' +
+    '</table>' +
+    (historyHtml ? '<div class="sec">対応履歴</div><table>' + historyHtml + '</table>' : '') +
+    '</div></body></html>';
+}
+
+// ============================================================
+// トースト
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(function(){ t.classList.remove('on'); }, 3000);
+}
+</script>
+</body>
+</html>
