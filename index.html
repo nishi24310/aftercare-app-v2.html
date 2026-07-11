@@ -154,12 +154,17 @@ textarea{min-height:70px;resize:vertical;}
       <label>品番</label>
       <input type="text" id="f-model" placeholder="例：給湯器 XYZ-1234">
 
-      <label>対応内容</label>
-      <textarea id="f-action" placeholder="状況・お客様からの申告内容・現地での対応予定など"></textarea>
+<label>対応内容</label>
+<textarea id="f-action" placeholder="状況・お客様からの申告内容・現地での対応予定など"></textarea>
 
-      <div class="timeline" id="timeline" style="display:none;"></div>
+<label>受付担当者名</label>
+<input type="text" id="f-receptionist" placeholder="例：舞">
 
-      <button class="btn btn-terra" onclick="openArrangeModal()">🔧 業者手配</button>
+<button class="btn btn-outline" onclick="outputHandoffPdf()">📤 引継ぎPDF出力(状況共有用)</button>
+
+<div class="timeline" id="timeline" style="display:none;"></div>
+
+<button class="btn btn-terra" onclick="openArrangeModal()">🔧 業者手配</button>
       <button class="btn btn-green" onclick="openCompleteModal()">✅ 完了報告</button>
       <button class="btn btn-outline" onclick="exportCaseJSON()">💾 案件データをJSON出力</button>
       <button class="btn btn-outline" onclick="outputPdf()">📄 対応記録PDFを出力</button>
@@ -642,7 +647,60 @@ function sendNotification(payload) {
     showToast('⚠️ 通知メールの送信に失敗しました(記録は保存されています)');
   });
 }
+// ============================================================
+// 引継ぎPDF出力(事務所受付 → 工事・アフター担当への引継ぎ用)
+// ============================================================
+function outputHandoffPdf() {
+  if (!selectedCustomer) { alert('お客様を選択してください'); return; }
+  currentCase.model = document.getElementById('f-model').value.trim();
+  currentCase.action = document.getElementById('f-action').value.trim();
+  const receptionist = document.getElementById('f-receptionist').value.trim();
 
+  const html = buildHandoffPdfHtml(receptionist);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+}
+
+function buildHandoffPdfHtml(receptionist) {
+  const today = new Date().toLocaleString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const c = currentCase;
+
+  return '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>' +
+    '@page{size:A4;margin:15mm 12mm;}' +
+    'body{font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:13px;color:#222;margin:0;padding:0;}' +
+    '.wrap{max-width:720px;margin:0 auto;}' +
+    'h1{font-size:18px;text-align:center;border-bottom:3px solid #c17a5c;padding-bottom:10px;margin-bottom:16px;}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:16px;}' +
+    'td{padding:8px 10px;border:1px solid #ccc;font-size:13px;vertical-align:top;}' +
+    '.lbl{background:#f0f3f7;font-weight:bold;width:100px;}' +
+    '.sec{background:#c17a5c;color:#fff;padding:6px 12px;margin:16px 0 8px;font-weight:bold;font-size:12px;}' +
+    '.logo{font-weight:bold;font-size:13px;color:#345c40;margin-bottom:6px;}' +
+    '.note{margin-top:20px;padding:10px;border:1px dashed #999;font-size:11px;color:#666;}' +
+    '</style></head><body><div class="wrap">' +
+    '<div class="logo">■ IE KEIKAKU</div>' +
+    '<h1>アフター対応 引継ぎ票</h1>' +
+    '<table>' +
+    '<tr><td class="lbl">受付日時</td><td colspan="3">' + today + '</td></tr>' +
+    '<tr><td class="lbl">受付担当</td><td colspan="3">' + (receptionist || '－') + '</td></tr>' +
+    '</table>' +
+    '<div class="sec">お客様情報</div>' +
+    '<table>' +
+    '<tr><td class="lbl">お客様</td><td colspan="3"><b>' + selectedCustomer.name + '</b> 様</td></tr>' +
+    '<tr><td class="lbl">契約NO.</td><td>' + (selectedCustomer.no || '－') + '</td><td class="lbl">引渡日</td><td>' + (selectedCustomer.delivery || '－') + '</td></tr>' +
+    '<tr><td class="lbl">住所</td><td colspan="3">' + selectedCustomer.addr + '</td></tr>' +
+    '<tr><td class="lbl">電話番号</td><td colspan="3">' + (selectedCustomer.tel || '－') + '</td></tr>' +
+    '</table>' +
+    '<div class="sec">案件情報</div>' +
+    '<table>' +
+    '<tr><td class="lbl">状態</td><td>' + (c.status || '－') + '</td></tr>' +
+    '<tr><td class="lbl">品番</td><td>' + (c.model || '－') + '</td></tr>' +
+    '<tr><td class="lbl">対応内容</td><td>' + (c.action || '－') + '</td></tr>' +
+    '</table>' +
+    '<div class="note">※この引継ぎ票をもとに、工事・アフター担当者がアプリへ入力し、業者手配・完了報告を行ってください。</div>' +
+    '</div></body></html>';
+}
 // ============================================================
 // PDF出力(点検アプリと同じ方式:別タブでHTMLを開いて印刷)
 // ============================================================
